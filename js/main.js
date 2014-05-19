@@ -1,3 +1,5 @@
+var oldParentId;
+
 $.jstree.defaults.dnd.copy = false;
 $(document).ready(function(){
 	$('#separators')
@@ -19,17 +21,21 @@ $(document).ready(function(){
 			"plugins" : ["contextmenu", "dnd", "search", "types", "wholerow"]
 		});
 });
-
+$(document).on('dnd_start.vakata',function(e,data){
+	target = $(data.event.target).closest("li[id]");
+	oldParentId = $('#separators').jstree(true).get_parent(target);
+})
 $(document).on('dnd_stop.vakata', function (e, data) {
+	target = $(data.event.target).closest("li[id]");
+	$('#separators').jstree(true).open_node(target);
+	elementId = $(data.element).closest("li[id]").attr("id");
+
+
 	if(confirm("Вы точно хотеите перенести данный элемент?")){
-		targetId = $(data.event.target).closest("li[id]").attr("id");
-		console.log();
 		//console.log($(data.element).closest("li[id]").parent().parent().attr("id"));
-		$('#separators').jstree(true).open_node(targetId);
-		elementId = $(data.element).closest("li[id]").attr("id");
 		setTimeout(function(){
 			parentOfElement = $('#separators').jstree(true).get_parent(elementId);
-			parentOfTarget = $('#separators').jstree(true).get_parent(targetId);
+			parentOfTarget = $('#separators').jstree(true).get_parent(target);
 
 			left = $('#'+elementId).prev().attr("id");
 			if(left==undefined){left=0};
@@ -37,7 +43,7 @@ $(document).on('dnd_stop.vakata', function (e, data) {
 			right = $('#'+elementId).next().attr("id");
 			if(right==undefined){right=0};
 
-			if((parentOfElement!=parentOfTarget)||((parentOfElement == parentOfTarget)&&(targetId!=elementId))){
+			if((parentOfElement!=parentOfTarget)||((parentOfElement == parentOfTarget)&&(target!=elementId))){
 				$.ajax({
 					type: "POST",
 					url: "/main/updateTree",
@@ -47,10 +53,14 @@ $(document).on('dnd_stop.vakata', function (e, data) {
 			//console.log($('#'+elementId).prev().attr("id"));
 			//console.log($('#'+elementId).next().attr("id"));
 			console.log("elementId = " + elementId);
-			console.log("targetId = " + targetId);
+			console.log("targetId = " + target);
 			console.log(parentOfElement);
 			console.log(parentOfTarget);
 		},100)
+	}else{
+		$("#"+elementId).remove();
+		$('#separators').jstree(true).refresh_node($("#"+oldParentId));
+		$('#separators').jstree(true).open_node(oldParentId);
 	}
 	/*
 	if(elementId!=targetId){}
