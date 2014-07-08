@@ -1,4 +1,3 @@
-<?PHP header("Content-Type: text/html; charset=utf-8");?>
 <?PHP
 	class Main extends CI_Controller {
 
@@ -8,44 +7,84 @@
 	        $this->load->helper(array('form', 'url'));
 			$this->load->library('form_validation');
 			$this->load->model('catalog');
+
+			$this->load->model('cardCatalog');
 	    }
 
 		function index()
 		{
-			$main_catalog = $this->catalog->get_tree(0);
-			$data = $main_catalog[0];
+			$data = $this->catalog->get_tree(0);
+			$data['id'] = $data[0][0];
+			$data['name'] = $data[0][1];
 			$this->load->view('main',$data);
+		}
+
+		function insertCards()
+		{
+			$maxI = 200;
+			$i=1;
+			$parentId = 6;
+			while($i<=$maxI){
+				if($i>=100){
+					$num='00000';
+				}else if(($i<100)&&(9<$i)){
+					$num='000000';
+				}else if(9>=$i){
+					$num='0000000';
+				}
+
+				$faceImageCard = 'Каталог_на_Болгарском_языке/Андрей-Апостолов/' . $num . $i . '.JPG';
+				$i++;
+				$backImageCard = 'Каталог_на_Болгарском_языке/Андрей-Апостолов/' . $num . $i . '.JPG';
+				$id=($i/2)+586;
+				switch ($id) {
+					case 587:
+						$left= -1;
+						$right= $id + 1;
+						break;
+					case 686:
+						$left= $id - 1;
+						$right= -1;
+						break;
+					default:
+						$left= $id - 1;
+						$right= $id + 1;
+						break;
+				}
+
+				$this->cardCatalog->insertCards($id,$left,$right,$faceImageCard,$backImageCard,$parentId);
+				$i++; 
+			}
 		}
 
 		function treeNode()
 		{
 			if (isset($_GET['type'])){
-				$type = $this->input->get('type', TRUE);	
+				$type = $this->input->get('type', TRUE);
 			}else{
 				$type="";
 			}
+			
+			$id = $this->input->get('id', TRUE);
+			$parent = $type = $this->input->get('parent', TRUE);
+			if($parent==""){
+				$parent="#";
+			}else{
+				$parent=$id;
+			}
 
-			$id= $this->input->get('id', TRUE);
 			if ($id=='#'){
 				$id=-1;
 			}
-
-			if($type == "box"){
-				$treeArray = $this->catalog->get_card($id);
-				for($i=0;$i<count($treeArray);$i++){
-					echo "<ul>
-					<li  id ='card_" . $treeArray[$i]['id'] . "'  role = 'card' class='jstree'>" . $treeArray[$i]['name'] . "</li>
-					</ul>";
-				}
-			}else{
-				$treeArray = $this->catalog->get_tree($id);
-				for($i=0;$i<count($treeArray);$i++){
-					$data =  `"{'disabled':true}"`;
-					echo "<ul>
-						<li id ='" . $treeArray[$i]['id'] . "' data-jstree=" . $data . " role = '" . $treeArray[$i]['type'] . "' class='jstree-closed'>" . $treeArray[$i]['name'] . "</li>
-						</ul>";
-				}
+			$treeArray = $this->catalog->get_tree($id);
+			#print_r($treeArray);
+			$page_data=array();
+			for($i=0;$i<count($treeArray);$i++){
+				$children = $this->catalog->issetChaild($treeArray[$i][0]);
+				$children = !empty($children);
+				array_push($page_data,array("id"=>$treeArray[$i][0],"parent"=>$parent,"type" => $treeArray[$i][2],"text"=>$treeArray[$i][1],"state"=>array("opened"=>false,"disabled"=>false,"selected"=>false),"children"=>$children));
 			}
+			echo json_encode($page_data);
 		}
 
 		function updateTree()
@@ -54,12 +93,10 @@
 			$parentNode = $this->input->post("parentNode",TRUE);
 			$left = $this->input->post("left",TRUE);
 			$right = $this->input->post("right",TRUE);
-			
-			$this->catalog->leftNode($left,$currentNode);
-			$this->catalog->rightNode($right,$currentNode);
-			$this->catalog->mainNode($right, $left, $parentNode, $currentNode);
 
-			echo "ok";
+			$this->catalog->changeOldLeftAndRightNode($currentNode);
+			$this->catalog->changePlacedPosition($left,$right,$currentNode,$parentNode);
+			#$this->catalog->mainNode($right, $left, $parentNode, $currentNode);
 		}
 
 		function create()
@@ -102,6 +139,59 @@
 			}else{
 				$this->catalog->deleteCatalog($id);
 			}
+		}
+
+		function loadCardFaceimage()
+		{	
+			$id = $this->input->post("id",TRUE);
+			$faceImagesArray = $this->cardCatalog->getFaceIamgeCard($id);
+			for($i=0;$i<count($faceImagesArray);$i++){
+				$faceImagesArray[$i] = $faceImagesArray[$i][0].'!!!'.$faceImagesArray[$i][1];
+			}
+			echo(implode ('!!!!!!!', $faceImagesArray));
+		}
+
+		function loadCardImages()
+		{
+			$id = $this->input->post("id",TRUE);
+			$faceImagesArray = $this->cardCatalog->getIamgeCard($id);
+			//print_r($faceImagesArray[0]);
+			echo $faceImagesArray[0]['faceImageCard'] . '!?!?!?!?!?!' . $faceImagesArray[0]['backImageCard']; 
+		}
+
+		function updateCardPosition()
+		{
+			$id = $this->input->post("id",TRUE);
+			$leftId = $this->input->post("leftId",TRUE);
+			$rigthId = $this->input->post("rightId",TRUE);
+			$this->cardCatalog->updateCard($id,$leftId,$rigthId);
+		}
+
+		function updateSomeCardPosition()
+		{
+			$parent = $this->input->post("parent",TRUE);
+			$draggedCards = $this->input->post("draggedCards",TRUE);
+			$draggedCards = explode('!', $draggedCards);
+			print_r($draggedCards);
+
+			for($i=0;$i<count($draggedCards);$i++){
+				$this->cardCatalog->changeCatalog($draggedCards[$i],$parent);
+			}
+
+			$positions = $this->input->post("positions",TRUE);
+			$positions = explode('!', $positions);
+			for($i=0;$i<count($positions);$i++){
+				$positions[$i] = explode('?', $positions[$i]);
+				$this->cardCatalog->updateCatalogAfterDraggingCards($positions[$i][0],$positions[$i][1]);
+			}
+			print_r($positions);
+		}
+
+		function moveCard()
+		{
+			$idCard = $this->input->post("idCard",TRUE);
+			$idParent = $this->input->post("idParent",TRUE);
+			$this->cardCatalog->moveCardToNewParent($idCard,$idParent);
 		}
 		
 	}

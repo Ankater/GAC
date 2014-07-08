@@ -2,6 +2,64 @@
 	margin-bottom: 0px;
 }
 
-.sidebar{
+.imageCard{
+    width: 200px;
+    min-height: 100px;
+    border: 1px;
+    display: -moz-inline-stack;
+    display: inline-block;
+    vertical-align: top;
+    margin: 5px;
+    zoom: 1;
+    *display: inline;
+    _height: 250px;
+}
 
+.cardMin{
+    padding:10px;
+}
+
+#flipbox{
+	display: table;
+	width:2px;
+	border:5px orange solid;
+}
+
+.prevCardContainer, .nextCardContainer{
+	margin-top: 25%;
+}
+
+.hoveredBranch{
+	background-image: linear-gradient(to bottom, #5EFFAB 0px, #7FFFBD 100%);
+}
+
+.leftsidebar {
+	padding-right: 0px;
+}
+
+.rigthsidebar{
+	padding-left: 0px;
+	padding-right: 0px;
+}
+
+.mainRow{
+	margin-right: 0px;
+}
+
+.ui-selected > div > a{
+	background-color: #FFB223;
+}
+
+.ui-selecting > div > a{
+	background-color: #D2F984;
+}
+
+#numDraggedItems{
+	display: block; 
+	margin: 0px; 
+	padding: 0px; 
+	position: absolute; 
+	z-index: 10000; 
+	left: 0px; 
+	top: 0px;
 }
